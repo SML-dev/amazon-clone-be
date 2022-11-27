@@ -12,6 +12,10 @@ export class User {
   password: string;
   @Prop({ default: false })
   isActive: boolean;
+  @Prop({ default: null })
+  refreshToken: string;
+  @Prop({ default: null })
+  activeToken: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -1,25 +1,50 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from '../user/user.service';
+import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
-import { RegisterUserRequestDto } from 'src/user/dto/request/register-user.request.dto';
-import { UserResponseDto } from '../user/dto/user-response.dto';
 import { LoginUserRequestDto } from 'src/user/dto/request/login-user.request.dto';
+import { UserService } from '../user/user.service';
+import { UserResponseDto } from '../user/dto/response/user-response.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private jwtService: JwtService,
+  ) {}
 
-  async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 10);
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<UserResponseDto | null> {
+    try {
+      const user = await this.userService.getUserByEmail(email);
+      if (user === null) {
+        return null;
+      }
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return null;
+      }
+
+      if (!user.isActive) {
+        return null;
+      }
+      return user;
+    } catch (e) {
+      console.error({ error: e.message });
+    }
   }
 
-  async register(user: RegisterUserRequestDto): Promise<UserResponseDto> {
-    const existingUser = await this.userService.getUserByEmail(user.email);
-    if (existingUser) {
-      throw new Error(`User ${user.email} already exists`);
-    } else {
-      user.password = await this.hashPassword(user.password);
-      return this.userService.create(user);
-    }
+  async login(existingUser: LoginUserRequestDto, res: Response): Promise<any> {
+    const { email, password } = existingUser;
+    const user = await this.validateUser(email, password);
+    const token = await this.jwtService.signAsync({ user });
+    const secretData = {
+      token,
+    };
+    res
+      .cookie('auth-cookie', secretData, { httpOnly: true })
+      .json({ msg: `Jesteś zalogowany` });
   }
 }
