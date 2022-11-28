@@ -47,4 +47,10 @@ export class AuthService {
       .cookie('auth-cookie', secretData, { httpOnly: true })
       .json({ msg: `Jesteś zalogowany` });
   }
+
+  async activeAccount(token): Promise<any> {
+    const filter = { activeToken: token };
+    const update = { activeToken: null, isActive: true };
+    return this.userService.findOneAndUpdate(filter, update);
+  }
 }

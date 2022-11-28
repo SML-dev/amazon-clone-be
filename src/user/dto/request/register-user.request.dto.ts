@@ -18,4 +18,7 @@ export class RegisterUserRequestDto {
   @Match('password')
   @IsString()
   confirmPassword: string;
+
+  @IsString()
+  activeToken?: string;
 }

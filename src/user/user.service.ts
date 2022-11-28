@@ -6,11 +6,13 @@ import { UserDocument } from './schemas/user.schema';
 import { RegisterUserRequestDto } from './dto/request/register-user.request.dto';
 import * as bcrypt from 'bcrypt';
 import * as randomToken from 'rand-token';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
+    private emailService: EmailService,
   ) {}
 
   userDetails(user: UserDocument): UserResponseDto {
@@ -26,11 +28,16 @@ export class UserService {
   }
 
   async create(user: RegisterUserRequestDto): Promise<UserResponseDto> {
-    const newUser = new this.userModel(user);
-    newUser.password = await this.hashPassword(newUser.password);
-    newUser.activeToken = randomToken.generate(16);
-    await newUser.save();
-    return this.userDetails(newUser);
+    try {
+      const newUser = new this.userModel(user);
+      newUser.password = await this.hashPassword(newUser.password);
+      newUser.activeToken = randomToken.generate(16);
+      await newUser.save();
+      await this.emailService.sendUserConfirmation(user, newUser.activeToken);
+      return this.userDetails(newUser);
+    } catch (e) {
+      console.error({ error: e.message });
+    }
   }
 
   async getUserByEmail(email: string): Promise<UserDocument> {
@@ -43,6 +50,7 @@ export class UserService {
     if (existingUser) {
       return { error: 'Email został już użyty podczas rejestracji' };
     }
+
     return this.create(reqPayload);
   }
 
@@ -53,4 +61,8 @@ export class UserService {
   //   }
   //   return this.userDetails(user);
   // }
+
+  async findOneAndUpdate(filter: any, update: any): Promise<UserDocument> {
+    return this.userModel.findOneAndUpdate(filter, update);
+  }
 }

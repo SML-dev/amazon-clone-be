@@ -1,4 +1,12 @@
-import { Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { LoginUserResponseDto } from '../user/dto/response/login-response.dto';
@@ -15,6 +23,11 @@ export class AuthController {
     @Res() res: Response,
   ): Promise<LoginUserResponseDto> {
     return this.authService.login(user, res);
+  }
+
+  @Get('activate/:token')
+  async active(@Param('token') token: string): Promise<any> {
+    return this.authService.activeAccount(token);
   }
 }
 
